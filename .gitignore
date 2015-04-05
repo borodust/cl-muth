@@ -1,0 +1,7 @@
+# binaries
+*.fasl
+
+# other
+*~
+.#*
+\#*
