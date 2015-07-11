@@ -7,6 +7,15 @@
 
 	   ; lifo
 	   blocking-queue
+	   interrupted
 	   
+	   interrupt
 	   put-into
-	   pop-from))
+	   pop-from
+
+	   default-looper
+
+	   start-looper
+	   stop-looper
+	   add-to-loop
+	   within-loop))

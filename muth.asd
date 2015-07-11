@@ -7,7 +7,9 @@
   :description "Multithreading utilities"
   :version "0.0.1"
   :author "Pavel Korolev <dev at borodust.org>"
-  :depends-on (alexandria bordeaux-threads)
+  :depends-on (alexandria bordeaux-threads log4cl)
   :serial t
   :components ((:file "packages")
-	       (:file "muth")))
+	       (:file "guarded-reference")
+	       (:file "blocking-queue")
+	       (:file "looper")))
