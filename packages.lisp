@@ -18,4 +18,8 @@
 	   start-looper
 	   stop-looper
 	   add-to-loop
-	   within-loop))
+	   within-loop
+
+	   simple-latch
+	   wait-for-latch
+	   open-latch))

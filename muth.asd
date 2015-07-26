@@ -12,4 +12,5 @@
   :components ((:file "packages")
 	       (:file "guarded-reference")
 	       (:file "blocking-queue")
-	       (:file "looper")))
+	       (:file "looper")
+	       (:file "latch")))
