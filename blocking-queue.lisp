@@ -1,8 +1,8 @@
-(in-package :muth)
+(in-package :cl-muth)
 
 (defclass blocking-queue ()
   ((lock :initform (make-recursive-lock))
-   (interrupted :initform nil)
+   (interrupted-p :initform nil)
    (item-available :initform (make-condition-variable))
    (queue :initform '())))
 
@@ -21,21 +21,21 @@
 
 
 (defmethod pop-from ((this blocking-queue))
-  (with-slots (lock item-available queue interrupted) this
+  (with-slots (lock item-available queue interrupted-p) this
     (with-recursive-lock-held (lock)
       (loop for item = (first queue) while (null item) do
 	   (restart-case (cond
-			   (interrupted (setf interrupted nil)
-					(error (make-condition 'interrupted)))
+			   (interrupted-p (setf interrupted-p nil)
+                                          (error (make-condition 'interrupted)))
 			   (t (condition-wait item-available lock)))
 	     (continue-blocking-operation ()
-	       (setf interrupted nil)))
+	       (setf interrupted-p nil)))
 	 finally (setf queue (rest queue))
 	 finally (return item)))))
 
 
 (defmethod interrupt ((this blocking-queue))
-  (with-slots (lock item-available interrupted) this
+  (with-slots (lock item-available interrupted-p) this
     (with-recursive-lock-held (lock)
-      (setf interrupted t)
+      (setf interrupted-p t)
       (condition-notify item-available))))

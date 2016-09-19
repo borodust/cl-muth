@@ -1,6 +1,7 @@
-(in-package :cl-user)
+(in-package :cl-muth.definition)
 
-(defpackage :muth
+(defpackage :cl-muth
+  (:nicknames :mt :muth)
   (:use :cl :alexandria :bordeaux-threads)
   (:export guard-object
 	   with-guarded-object

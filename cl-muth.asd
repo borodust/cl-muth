@@ -1,12 +1,16 @@
-(defpackage :muth-def
+(in-package :cl-user)
+
+(defpackage :cl-muth.definition
   (:use :cl :asdf))
 
-(in-package :muth-def)
+(in-package :cl-muth.definition)
 
-(defsystem :muth
+(defsystem cl-muth
   :description "Multithreading utilities"
   :version "0.0.1"
-  :author "Pavel Korolev <dev at borodust.org>"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :license "MIT"
   :depends-on (alexandria bordeaux-threads log4cl)
   :serial t
   :components ((:file "packages")

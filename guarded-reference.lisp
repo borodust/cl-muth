@@ -1,4 +1,4 @@
-(in-package :muth)
+(in-package :cl-muth)
 
 (defclass guarded-reference ()
   ((lock :initform (make-recursive-lock))
