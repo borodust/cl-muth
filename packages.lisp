@@ -3,24 +3,24 @@
 (defpackage :cl-muth
   (:nicknames :mt :muth)
   (:use :cl :alexandria :bordeaux-threads)
-  (:export guard-object
-	   with-guarded-object
+  (:export make-guarded-reference
+	   with-guarded-reference
+           guarded-value-of
 
-	   ; lifo
-	   blocking-queue
+	   ; fifo
+	   make-blocking-queue
 	   interrupted
-	   
 	   interrupt
 	   put-into
 	   pop-from
 
-	   default-looper
-
+	   make-looper
 	   start-looper
 	   stop-looper
 	   add-to-loop
 	   within-loop
 
-	   simple-latch
+	   make-latch
+           wait-with-latch
 	   wait-for-latch
 	   open-latch))

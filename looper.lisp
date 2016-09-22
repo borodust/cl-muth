@@ -1,25 +1,21 @@
 (in-package :cl-muth)
 
 
-(defclass looper () ())
-
-(defgeneric start-looper (looper))
-(defgeneric stop-looper (looper))
-(defgeneric add-to-loop (looper callback))
-
-(defmacro within-loop ((looper) &body body)
-  `(add-to-loop ,looper #'(lambda () ,@body)))
-
-
-(defclass default-looper (looper)
+;;;
+;;;
+;;;
+(defclass default-looper ()
   ((thread :initform nil)
    (lock :initform (bt:make-recursive-lock "looper-lock"))
    (queue :initform (make-instance 'blocking-queue))
-   (invoker :initarg :invoker :initform (lambda (cb) (funcall cb)))))
+   (invoker :initarg :invoker)))
 
+(defun make-looper (&optional (invoker (lambda (cb) (funcall cb))))
+  (make-instance 'default-looper :invoker invoker))
 
-(defmethod start-looper ((this default-looper))
-  (with-slots (thread invoker queue lock) this
+(defun start-looper (looper)
+  (check-type looper default-looper)
+  (with-slots (thread invoker queue lock) looper
     (with-recursive-lock-held (lock)
       (when (null thread)
 	(setf thread
@@ -37,8 +33,9 @@
 			   :name "looping-thread"))))))
 
 
-(defmethod stop-looper ((this default-looper))
-  (with-slots (thread lock queue) this
+(defun stop-looper (looper)
+  (check-type looper default-looper)
+  (with-slots (thread lock queue) looper
     (let ((th nil))
       (with-recursive-lock-held (lock)
 	(unless (null thread)
@@ -49,11 +46,13 @@
 	(join-thread th)))))
 
 
-
-
-(defmethod add-to-loop ((this default-looper) callback)
-  (with-slots (queue lock thread) this
+(defun add-to-loop (looper fn)
+  (check-type looper default-looper)
+  (with-slots (queue lock thread) looper
     (with-recursive-lock-held (lock)
       (when (null thread)
 	(error "looper inactive")))
-    (put-into queue callback)))
+    (put-into queue fn)))
+
+(defmacro within-loop ((looper) &body body)
+  `(add-to-loop ,looper #'(lambda () ,@body)))
