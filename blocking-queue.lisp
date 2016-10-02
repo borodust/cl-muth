@@ -28,7 +28,7 @@
 (defun pop-from (blocking-queue)
   (with-slots (lock item-available queue interrupted-p) blocking-queue
     (with-recursive-lock-held (lock)
-      (loop for item = (first queue) while (null item) do
+      (loop for item = (first queue) while (null queue) do
 	   (restart-case (cond
 			   (interrupted-p (setf interrupted-p nil)
                                           (error (make-condition 'interrupted)))

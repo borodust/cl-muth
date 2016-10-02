@@ -23,4 +23,10 @@
 	   make-latch
            wait-with-latch
 	   wait-for-latch
-	   open-latch))
+	   open-latch
+
+           make-thread-pool
+           open-pool
+           push-to-pool
+           close-pool
+           within-pool))

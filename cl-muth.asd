@@ -17,4 +17,5 @@
 	       (:file "guarded-reference")
 	       (:file "blocking-queue")
 	       (:file "looper")
-	       (:file "latch")))
+	       (:file "latch")
+               (:file "thread-pool")))
