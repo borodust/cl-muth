@@ -6,22 +6,26 @@
    (item-available :initform (make-condition-variable))
    (queue :initform '())))
 
-(defun make-blocking-queue ()
-  (make-instance 'blocking-queue))
 
 (define-condition interrupted (control-error) ())
 
-(defun put-into (blocking-queue fn)
-  (check-type blocking-queue blocking-queue)
+
+(declaim (inline make-blocking-queue))
+(defun make-blocking-queue ()
+  (make-instance 'blocking-queue))
+
+
+(declaim (ftype (function (blocking-queue *) *) put-into))
+(defun put-into (blocking-queue item)
   (with-slots (lock item-available queue) blocking-queue
     (with-recursive-lock-held (lock)
-      (setf queue (nconc queue (list fn)))
+      (setf queue (nconc queue (list item)))
       (condition-notify item-available)))
-  fn)
+  item)
 
 
+(declaim (ftype (function (blocking-queue) *) pop-from))
 (defun pop-from (blocking-queue)
-  (check-type blocking-queue blocking-queue)
   (with-slots (lock item-available queue interrupted-p) blocking-queue
     (with-recursive-lock-held (lock)
       (loop for item = (first queue) while (null item) do
@@ -35,8 +39,8 @@
 	 finally (return item)))))
 
 
+(declaim (ftype (function (blocking-queue) *) interrupt))
 (defun interrupt (blocking-queue)
-  (check-type blocking-queue blocking-queue)
   (with-slots (lock item-available interrupted-p) blocking-queue
     (with-recursive-lock-held (lock)
       (setf interrupted-p t)

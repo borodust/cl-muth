@@ -5,8 +5,10 @@
    (ref :initarg :reference :initform nil)))
 
 
+(declaim (inline make-guarded-reference))
 (defun make-guarded-reference (object)
   (make-instance 'guarded-reference :reference object))
+
 
 (defmacro with-guarded-reference ((local-ref-name &optional global-ref-name) &body body)
   (with-gensyms (lock)
@@ -17,10 +19,14 @@
 	 (with-recursive-lock-held (,lock)
 	   ,@body)))))
 
+
+(declaim (ftype (function (guarded-reference) *) guarded-value-of))
 (defun guarded-value-of (guarded-ref)
   (with-guarded-reference (guarded-ref)
       guarded-ref))
 
+
+(declaim (ftype (function (* guarded-reference) *) (setf guarded-value-of)))
 (defun (setf guarded-value-of) (value guarded-ref)
   (with-guarded-reference (guarded-ref)
       (setf guarded-ref value)))

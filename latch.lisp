@@ -5,18 +5,22 @@
    (state-changed :initform (bt:make-condition-variable :name "latch-state"))
    (lock :initform (bt:make-recursive-lock "latch-lock"))))
 
+
+(declaim (inline make-latch))
 (defun make-latch (&optional (count 1))
   (make-instance 'simple-latch :count count))
 
+
+(declaim (ftype (function (simple-latch) *) wait-for-latch))
 (defun wait-for-latch (latch)
-  (check-type latch simple-latch)
   (with-slots (state-changed lock counter) latch
     (bt:with-recursive-lock-held (lock)
       (loop while (> counter 0) do
 	   (bt:condition-wait state-changed lock)))))
 
+
+(declaim (ftype (function (simple-latch) *) open-latch))
 (defun open-latch (latch)
-  (check-type latch simple-latch)
   (with-slots (state-changed lock counter) latch
     (bt:with-recursive-lock-held (lock)
       (when (> counter 0)
