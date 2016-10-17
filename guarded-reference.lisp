@@ -1,7 +1,7 @@
 (in-package :cl-muth)
 
 (defclass guarded-reference ()
-  ((lock :initform (make-recursive-lock))
+  ((lock :initform (make-recursive-lock "guard-ref-lock"))
    (ref :initarg :reference :initform nil)))
 
 
@@ -10,12 +10,12 @@
   (make-instance 'guarded-reference :reference object))
 
 
-(defmacro with-guarded-reference ((local-ref-name &optional global-ref-name) &body body)
+(defmacro with-guarded-reference ((name &optional value) &body body)
   (with-gensyms (lock)
     (once-only ((ref (cond
-		       (global-ref-name)
-		       (t local-ref-name))))
-      `(with-slots ((,lock lock) (,local-ref-name ref)) ,ref
+		       (value)
+		       (t name))))
+      `(with-slots ((,lock lock) (,name ref)) ,ref
 	 (with-recursive-lock-held (,lock)
 	   ,@body)))))
 

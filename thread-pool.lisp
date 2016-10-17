@@ -4,33 +4,36 @@
              (:conc-name tp-)
              (:constructor make-thread-pool (pool-size)))
   (pool-size 1 :read-only t)
-  (active-p nil)
   (lock (make-lock "thread-pool-lock") :read-only t)
-  (blocking-queue (make-blocking-queue) :read-only t))
+  (enabled-p nil)
+  (blocking-queue nil))
 
 
 (defun %make-thread-pool-worker (pool)
   (make-thread
    (lambda ()
-     (loop for item = (pop-from (tp-blocking-queue pool)) until (null item) do
-          (funcall item)))
+     (handler-case
+         (loop for item = (pop-from (tp-blocking-queue pool)) when (functionp item) do
+              (funcall item))
+       (interrupted ()))) ; just exit the thread
    :name "thread-pool-worker"))
 
 
 (declaim (ftype (function (thread-pool) *) open-pool))
 (defun open-pool (pool)
   (with-lock-held ((tp-lock pool))
-    (when (tp-active-p pool)
+    (when (tp-enabled-p pool)
       (error "Pool already active"))
+    (setf (tp-blocking-queue pool) (make-blocking-queue)
+          (tp-enabled-p pool) t)
     (loop for i from 0 below (tp-pool-size pool) collecting
-         (%make-thread-pool-worker pool))
-    (setf (tp-active-p pool) t)))
+         (%make-thread-pool-worker pool))))
 
 
 (declaim (ftype (function (thread-pool (function () *)) *) push-to-pool))
 (defun push-to-pool (pool fn)
   (with-lock-held ((tp-lock pool))
-    (unless (tp-active-p pool)
+    (unless (tp-enabled-p pool)
       (error "Pool inactive"))
     (put-into (tp-blocking-queue pool) fn)))
 
@@ -38,11 +41,10 @@
 (declaim (ftype (function (thread-pool) *) close-pool))
 (defun close-pool (pool)
   (with-lock-held ((tp-lock pool))
-    (unless (tp-active-p pool)
+    (unless (tp-enabled-p pool)
       (error "Pool already inactive"))
-    (loop for i from 0 below (tp-pool-size pool) do
-         (put-into (tp-blocking-queue pool) nil))
-    (setf (tp-active-p pool) nil)))
+    (interrupt (tp-blocking-queue pool))
+    (setf (tp-enabled-p pool) nil)))
 
 
 (defmacro within-pool ((pool-place) &body body)
