@@ -3,16 +3,52 @@
 
 (define-constant +iterations-until-wait+ 1024)
 
+(deftype blocking-queue-item-priority ()
+  '(member :lowest :low :medium :high :highest))
+
 
 (defclass blocking-queue ()
-  ((lock :initform (make-recursive-lock))
+  ((lock :initform (make-recursive-lock "blocking-queue-lock"))
    (interrupted-p :initform nil)
    (max-size :initform nil :initarg :max-size)
-   (state-changed :initform (make-condition-variable))
-   (queue :initform '())))
+   (state-changed :initform (make-condition-variable :name "blocking-queue-condition"))
+   (queue :initform (list (list :highest)
+                          (list :high)
+                          (list :medium)
+                          (list :low)
+                          (list :lowest))
+          :reader %queue-of)))
 
 
 (define-condition interrupted (control-error) ())
+
+
+(defun %next (queue)
+  (let ((queue (%queue-of queue)))
+    (loop for group in queue
+       while (null (cdr group))
+       finally (return (pop (cdr group))))))
+
+
+(defun %length (queue)
+  (let ((queue (%queue-of queue)))
+    (loop with len = 0
+       for group in queue do
+         (incf len (length (cdr group)))
+       finally (return len))))
+
+
+(defun %emptyp (queue)
+  (let ((queue (%queue-of queue)))
+    (loop for group in queue
+         for empty-p = (null (cdr group))
+         while empty-p
+         finally (return empty-p))))
+
+
+(defun %add (queue item priority)
+  (let ((queue (%queue-of queue)))
+    (nconcf (cdr (assoc priority queue)) (list item))))
 
 
 (declaim (inline %wait-interruptibly))
@@ -33,31 +69,31 @@
   (make-instance 'blocking-queue :max-size max-size))
 
 
-(declaim (ftype (function (blocking-queue *) *) put-into))
-(defun put-into (blocking-queue item)
-  (with-slots (lock state-changed queue max-size) blocking-queue
+(declaim (ftype (function (blocking-queue * &optional blocking-queue-item-priority) *) put-into))
+(defun put-into (blocking-queue item &optional (priority :medium))
+  (with-slots (lock state-changed max-size) blocking-queue
     (with-recursive-lock-held (lock)
       (unless (null max-size)
-        (loop until (< (length queue) max-size) do
+        (loop until (< (%length blocking-queue) max-size) do
              (%wait-interruptibly blocking-queue)))
-      (setf queue (nconc queue (list item)))
+      (%add blocking-queue item priority)
       (condition-notify state-changed)))
   item)
 
 
 (declaim (ftype (function (blocking-queue) *) pop-from))
 (defun pop-from (blocking-queue)
-  (with-slots (lock state-changed queue interrupted-p) blocking-queue
+  (with-slots (lock state-changed interrupted-p) blocking-queue
     (with-recursive-lock-held (lock)
       (loop with i = 0
-         for item = (first queue) while (null queue)
-         if (null queue) do (incf i) else do (setf i 0)
+         for empty-p = (%emptyp blocking-queue)
+         while empty-p
+         if empty-p do (incf i) else do (setf i 0)
          when (> i +iterations-until-wait+) do
            (%wait-interruptibly blocking-queue)
 	 finally
-           (setf queue (rest queue))
            (condition-notify state-changed)
-           (return item)))))
+           (return (%next blocking-queue))))))
 
 
 (declaim (ftype (function (blocking-queue) *) interrupt))
