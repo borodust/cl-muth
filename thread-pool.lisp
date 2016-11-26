@@ -9,7 +9,7 @@
   (blocking-queue nil))
 
 
-(defun %make-thread-pool-worker (pool)
+(defun %make-thread-pool-worker (pool name)
   (make-thread
    (lambda ()
      (tagbody
@@ -22,18 +22,18 @@
                    (funcall item))
             (continue-execution () (go start))))
         end))
-   :name "thread-pool-worker"))
+   :name name))
 
 
-(declaim (ftype (function (thread-pool) *) open-pool))
-(defun open-pool (pool)
+(declaim (ftype (function (thread-pool &optional string) *) open-pool))
+(defun open-pool (pool &optional (name "thread-pool-worker"))
   (with-lock-held ((tp-lock pool))
     (when (tp-enabled-p pool)
       (error "Pool already active"))
     (setf (tp-blocking-queue pool) (make-blocking-queue)
           (tp-enabled-p pool) t)
     (loop for i from 0 below (tp-pool-size pool) collecting
-         (%make-thread-pool-worker pool))))
+         (%make-thread-pool-worker pool name))))
 
 
 (declaim (ftype (function (thread-pool (function () *) &optional blocking-queue-item-priority) *)
