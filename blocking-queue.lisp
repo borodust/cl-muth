@@ -3,6 +3,7 @@
 
 (define-constant +iterations-until-wait+ 1024)
 
+
 (deftype blocking-queue-item-priority ()
   '(member :lowest :low :medium :high :highest))
 
@@ -55,9 +56,8 @@
 (defun %wait-interruptibly (this)
   (with-slots (lock state-changed interrupted-p) this
     (restart-case (cond
-                    (interrupted-p
-                     (condition-notify state-changed)
-                     (error (make-condition 'interrupted)))
+                    (interrupted-p (condition-notify state-changed)
+                                   (error (make-condition 'interrupted)))
                     (t (condition-wait state-changed lock)))
       (continue-blocking-operation ()
         (setf interrupted-p nil)))))
@@ -84,16 +84,14 @@
 (declaim (ftype (function (blocking-queue) *) pop-from))
 (defun pop-from (blocking-queue)
   (with-slots (lock state-changed interrupted-p) blocking-queue
-    (with-recursive-lock-held (lock)
-      (loop with i = 0
-         for empty-p = (%emptyp blocking-queue)
-         while empty-p
-         if empty-p do (incf i) else do (setf i 0)
-         when (> i +iterations-until-wait+) do
-           (%wait-interruptibly blocking-queue)
-	 finally
-           (condition-notify state-changed)
-           (return (%next blocking-queue))))))
+    (loop for i = 0 then (1+ i) do
+         (with-recursive-lock-held (lock)
+           (unless (%emptyp blocking-queue)
+             (condition-notify state-changed)
+             (return (%next blocking-queue)))
+           (when (> i +iterations-until-wait+)
+             (%wait-interruptibly blocking-queue)
+             (setf i 0))))))
 
 
 (declaim (ftype (function (blocking-queue) *) interrupt))
