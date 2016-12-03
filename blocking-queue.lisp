@@ -31,12 +31,17 @@
        finally (return (pop (cdr group))))))
 
 
-(defun %length (queue)
+(defun %length (queue &optional upto)
   (let ((queue (%queue-of queue)))
-    (loop with len = 0
-       for group in queue do
-         (incf len (length (cdr group)))
-       finally (return len))))
+    (labels ((%split-length (queue upto)
+               (loop with len = 0
+                  for (group . tail) = queue then tail
+                  do (incf len (length (cdr group)))
+                  until (or (eq (car group) upto) (null tail))
+                  finally (return (values len (if (null tail)
+                                                  0
+                                                  (%split-length tail :lowest)))))))
+      (%split-length queue upto))))
 
 
 (defun %emptyp (queue)
@@ -50,6 +55,15 @@
 (defun %add (queue item priority)
   (let ((queue (%queue-of queue)))
     (nconcf (cdr (assoc priority queue)) (list item))))
+
+
+(defun %next-least-important (queue)
+  (let ((queue (%queue-of queue)))
+    (loop with least-important-group = nil
+       for group in queue
+       when (cdr group) do (setf least-important-group group)
+       finally (when least-important-group
+                 (pop (cdr least-important-group))))))
 
 
 (declaim (inline %wait-interruptibly))
@@ -69,16 +83,45 @@
   (make-instance 'blocking-queue :max-size max-size))
 
 
+(defun %put-into (blocking-queue item &optional (priority :medium))
+  (with-slots (state-changed) blocking-queue
+    (%add blocking-queue item priority)
+    (condition-notify state-changed))
+  item)
+
+
 (declaim (ftype (function (blocking-queue * &optional blocking-queue-item-priority) *) put-into))
 (defun put-into (blocking-queue item &optional (priority :medium))
-  (with-slots (lock state-changed max-size) blocking-queue
+  (with-slots (lock max-size) blocking-queue
     (with-recursive-lock-held (lock)
       (unless (null max-size)
         (loop until (< (%length blocking-queue) max-size) do
              (%wait-interruptibly blocking-queue)))
-      (%add blocking-queue item priority)
-      (condition-notify state-changed)))
+      (%put-into blocking-queue item priority)))
   item)
+
+
+(defun try-put-into (blocking-queue item &optional (priority :medium))
+  (with-slots (lock max-size) blocking-queue
+    (with-recursive-lock-held (lock)
+      (when (or (null max-size) (< (%length blocking-queue) max-size))
+        (%put-into blocking-queue item priority)
+        t))))
+
+
+(defun try-put-replacing (blocking-queue item &optional (priority :medium))
+  (with-slots (lock max-size) blocking-queue
+    (with-recursive-lock-held (lock)
+      (multiple-value-bind (upto rest) (%length blocking-queue priority)
+        (cond
+          ((or (null max-size) (< (+ upto rest) max-size))
+           (%put-into blocking-queue item)
+           t)
+          ((> rest 0)
+           (prog1 t
+             (%next-least-important blocking-queue)
+             (%put-into blocking-queue item priority)))
+          (t nil))))))
 
 
 (declaim (ftype (function (blocking-queue) *) pop-from))

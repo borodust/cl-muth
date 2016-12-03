@@ -12,6 +12,8 @@
 	   interrupted
 	   interrupt
 	   put-into
+           try-put-into
+           try-put-replacing
 	   pop-from
 
 	   make-looper
