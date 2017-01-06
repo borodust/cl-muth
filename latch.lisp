@@ -30,5 +30,5 @@
 
 (defmacro wait-with-latch ((latch-name &optional (count 1)) &body body)
   `(let ((,latch-name (make-latch ,count)))
-     ,@body
-     (wait-for-latch ,latch-name)))
+     (prog1 (progn ,@body)
+       (wait-for-latch ,latch-name))))
