@@ -31,4 +31,5 @@
            open-pool
            push-to-pool
            close-pool
+           pool-alive-p
            within-pool))

@@ -6,6 +6,7 @@
   (pool-size 1 :read-only t)
   (lock (make-lock "thread-pool-lock") :read-only t)
   (enabled-p nil)
+  (workers nil)
   (blocking-queue nil))
 
 
@@ -31,9 +32,10 @@
     (when (tp-enabled-p pool)
       (error "Pool already active"))
     (setf (tp-blocking-queue pool) (make-blocking-queue)
-          (tp-enabled-p pool) t)
-    (loop for i from 0 below (tp-pool-size pool) collecting
-         (%make-thread-pool-worker pool name))))
+          (tp-enabled-p pool) t
+          (tp-workers pool) (loop for i from 0 below (tp-pool-size pool)
+                               collecting (%make-thread-pool-worker pool name)))
+    pool))
 
 
 (declaim (ftype (function (thread-pool (function () *) &optional blocking-queue-item-priority) *)
@@ -52,6 +54,11 @@
       (error "Pool already inactive"))
     (interrupt (tp-blocking-queue pool))
     (setf (tp-enabled-p pool) nil)))
+
+
+(declaim (ftype (function (thread-pool) (values t)) pool-alive-p))
+(defun pool-alive-p (pool)
+  (loop for worker in (tp-workers pool) thereis (thread-alive-p worker)))
 
 
 (defmacro within-pool ((pool-place &optional (priority :medium)) &body body)
