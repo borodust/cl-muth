@@ -11,19 +11,17 @@
 
 
 (defun %make-thread-pool-worker (pool name)
-  (make-thread
-   (lambda ()
-     (tagbody
-        start
-        (handler-bind ((interrupted (lambda (c)
-                                      (declare (ignore c))
-                                      (go end)))) ; just exit the thread
-          (restart-case
-              (loop for item = (pop-from (tp-blocking-queue pool)) when (functionp item) do
-                   (funcall item))
-            (continue-execution () (go start))))
-        end))
-   :name name))
+  (flet ((run ()
+           (tagbody start
+              (handler-bind ((interrupted (lambda (c)
+                                            (declare (ignore c))
+                                            (go end)))) ; just exit the thread
+                (restart-case
+                    (loop for item = (pop-from (tp-blocking-queue pool)) when (functionp item) do
+                      (funcall item))
+                  (continue-execution () (go start))))
+            end)))
+    (make-thread #'run :name name)))
 
 
 (declaim (ftype (function (thread-pool &optional string) *) open-pool))

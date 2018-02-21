@@ -1,6 +1,4 @@
-(in-package :cl-muth.definition)
-
-(defpackage :cl-muth
+(cl:defpackage :cl-muth
   (:nicknames :mt :muth)
   (:use :cl :alexandria :bordeaux-threads)
   (:export make-guarded-reference
@@ -15,12 +13,6 @@
            try-put-into
            try-put-replacing
 	   pop-from
-
-	   make-looper
-	   start-looper
-	   stop-looper
-	   add-to-loop
-	   within-loop
 
 	   make-latch
            wait-with-latch
