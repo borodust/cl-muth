@@ -1,4 +1,4 @@
-(in-package :cl-muth)
+(cl:in-package :cl-muth)
 
 (defclass simple-latch ()
   ((counter :initarg :count :initform 1)

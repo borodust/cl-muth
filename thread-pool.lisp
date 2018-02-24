@@ -1,4 +1,4 @@
-(in-package :cl-muth)
+(cl:in-package :cl-muth)
 
 (defstruct (thread-pool
              (:conc-name tp-)

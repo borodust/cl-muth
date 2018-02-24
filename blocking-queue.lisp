@@ -1,4 +1,4 @@
-(in-package :cl-muth)
+(cl:in-package :cl-muth)
 
 
 (define-constant +iterations-until-wait+ 1024)
