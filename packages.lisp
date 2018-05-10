@@ -24,4 +24,7 @@
            push-to-pool
            close-pool
            pool-alive-p
-           within-pool))
+           within-pool
+
+           make-atomic-counter
+           decrement-atomic-counter))
