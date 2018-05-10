@@ -27,4 +27,9 @@
            within-pool
 
            make-atomic-counter
-           decrement-atomic-counter))
+           decrement-atomic-counter
+
+           make-spin-lock
+           acquire-spin-lock
+           release-spin-lock
+           with-spin-lock-held))

@@ -16,13 +16,17 @@
                (:module sbcl
                 :if-feature :sbcl
                 :serial t
-                :components ((:file "atomic")))
+                :components ((:file "atomic")
+                             (:file "spin-lock")))
                (:module ccl
                 :if-feature :ccl
                 :serial t
-                :components ((:file "atomic")))
+                :components ((:file "atomic")
+                             (:file "spin-lock")))
                (:module other
                 :if-feature (:not (:or :ccl :sbcl))
                 :serial t
-                :components ((:file "atomic")))
-               (:file "atomic")))
+                :components ((:file "atomic")
+                             (:file "spin-lock")))
+               (:file "atomic")
+               (:file "spin-lock")))
