@@ -77,17 +77,17 @@
         (setf interrupted-p nil)))))
 
 
-(declaim (inline make-blocking-queue)
-         (ftype (function (&optional (or null positive-integer)) *) make-blocking-queue))
-(defun make-blocking-queue (&optional (max-size nil))
-  (make-instance 'blocking-queue :max-size max-size))
-
-
 (defun %put-into (blocking-queue item &optional (priority :medium))
   (with-slots (state-changed) blocking-queue
     (%add blocking-queue item priority)
     (condition-notify state-changed))
   item)
+
+
+(declaim (inline make-blocking-queue)
+         (ftype (function (&optional (or null positive-integer)) *) make-blocking-queue))
+(defun make-blocking-queue (&optional (max-size nil))
+  (make-instance 'blocking-queue :max-size max-size))
 
 
 (declaim (ftype (function (blocking-queue * &optional blocking-queue-item-priority) *) put-into))

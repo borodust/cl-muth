@@ -32,4 +32,10 @@
            make-spin-lock
            acquire-spin-lock
            release-spin-lock
-           with-spin-lock-held))
+           with-spin-lock-held
+
+           make-scheduler
+           start-scheduler
+           stop-scheduler
+           schedule
+           unschedule))

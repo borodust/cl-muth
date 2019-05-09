@@ -29,4 +29,5 @@
                 :components ((:file "atomic")
                              (:file "spin-lock")))
                (:file "atomic")
-               (:file "spin-lock")))
+               (:file "spin-lock")
+               (:file "scheduler")))
