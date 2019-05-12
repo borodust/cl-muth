@@ -192,7 +192,7 @@
   (make-instance 'scheduler))
 
 
-(defun start-scheduler (scheduler)
+(defun start-scheduler (scheduler &key (background t))
   (with-slots (lock enabled-p condivar queue) scheduler
     (bt:with-recursive-lock-held (lock)
       (when enabled-p
@@ -201,7 +201,9 @@
       (flet ((run ()
                (loop while enabled-p
                      do (process-next-scheduler-event scheduler))))
-        (bt:make-thread #'run)))
+        (if background
+            (bt:make-thread #'run)
+            (run))))
     scheduler))
 
 
