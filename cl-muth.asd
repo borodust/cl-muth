@@ -6,6 +6,7 @@
   :license "MIT"
   :defsystem-depends-on (trivial-features)
   :depends-on (alexandria bordeaux-threads)
+  :pathname "src/"
   :serial t
   :components ((:file "packages")
                (:file "utils")
@@ -30,4 +31,21 @@
                              (:file "spin-lock")))
                (:file "atomic")
                (:file "spin-lock")
+               (:file "scheduler")))
+
+
+(asdf:defsystem cl-muth/tests
+  :description "cl-muth tests"
+  :version "1.0.0"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :license "MIT"
+  :depends-on (alexandria bordeaux-threads cl-muth fiveam)
+  :pathname "t/"
+  :serial t
+  :components ((:file "packages")
+               (:file "suite")
+               (:file "utils")
+	       (:file "blocking-queue")
+               (:file "thread-pool")
                (:file "scheduler")))

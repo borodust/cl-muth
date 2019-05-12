@@ -65,7 +65,7 @@
             (%add-child this-node (%extract-subtree that-node))))))
 
 
-(defun %ph-push (heap value)
+(defun %pairing-heap-push (heap value)
   (let* ((new-node (make-pairing-heap-node value))
          (root (pairing-heap-root heap))
          (key-extractor (pairing-heap-key-extractor heap)))
@@ -77,12 +77,12 @@
   heap)
 
 
-(defun %ph-peek (pairing-heap)
+(defun %pairing-heap-peek (pairing-heap)
   (when-let ((root (pairing-heap-root pairing-heap)))
     (phn-value root)))
 
 
-(defun %ph-pop (heap)
+(defun %pairing-heap-pop (heap)
   (when-let ((root (pairing-heap-root heap)))
     (let ((key-extractor (pairing-heap-key-extractor heap)))
       (flet ((first-pass (first-node)
@@ -112,24 +112,31 @@
           (setf (pairing-heap-root heap) new-root))))
     (phn-value root)))
 
+;;;
+;;; Scheduler priority queue
+;;;
 
 (defun make-scheduler-queue ()
   (make-pairing-heap :key #'car))
 
 
 (defun scheduler-queue-push (queue time task interval)
-  (%ph-push queue (cons (float time 0d0) (cons task (float interval 0d0)))))
+  (%pairing-heap-push queue (cons (float time 0d0) (cons task (float interval 0d0)))))
 
 
 (defun scheduler-queue-peek-time (queue)
-  (car (%ph-peek queue)))
+  (car (%pairing-heap-peek queue)))
 
 
 (defun scheduler-queue-pop (queue)
-  (when-let ((value (cdr (%ph-pop queue))))
+  (when-let ((value (cdr (%pairing-heap-pop queue))))
     (destructuring-bind (task . interval) value
       (values task interval))))
 
+
+;;;
+;;; Scheduler
+;;;
 
 (defclass scheduler ()
   ((enabled-p :initform nil)
@@ -194,7 +201,8 @@
       (flet ((run ()
                (loop while enabled-p
                      do (process-next-scheduler-event scheduler))))
-        (bt:make-thread #'run)))))
+        (bt:make-thread #'run)))
+    scheduler))
 
 
 (defun stop-scheduler (scheduler)
@@ -203,4 +211,5 @@
       (unless enabled-p
         (error "Scheduler already stopped"))
       (setf enabled-p nil)
-      (bt:condition-notify condivar))))
+      (bt:condition-notify condivar))
+    scheduler))

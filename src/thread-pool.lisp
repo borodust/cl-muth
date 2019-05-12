@@ -32,7 +32,7 @@
     (setf (tp-blocking-queue pool) (make-blocking-queue)
           (tp-enabled-p pool) t
           (tp-workers pool) (loop for i from 0 below (tp-pool-size pool)
-                               collecting (%make-thread-pool-worker pool name)))
+                                  collecting (%make-thread-pool-worker pool name)))
     pool))
 
 
