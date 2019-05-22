@@ -121,7 +121,8 @@
 
 
 (defun scheduler-queue-push (queue time task interval)
-  (%pairing-heap-push queue (cons (float time 0d0) (cons task (float interval 0d0)))))
+  (%pairing-heap-push queue (cons (float time 0d0)
+                                  (cons task (and interval (float interval 0d0))))))
 
 
 (defun scheduler-queue-peek-time (queue)
