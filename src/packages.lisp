@@ -34,8 +34,12 @@
            release-spin-lock
            with-spin-lock-held
 
+           make-blocking-timed-queue
+           blocking-timed-queue-push
+           blocking-timed-queue-pop
+           blocking-timed-queue-interrupt
+
            make-scheduler
-           poll-scheduler
            start-scheduler
            stop-scheduler
            schedule

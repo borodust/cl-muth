@@ -1,12 +1,5 @@
 (cl:in-package :cl-muth)
 
-
-(declaim (special *unscheduled-p*))
-
-
-(define-constant +double-float-drift-time-correction+ 0.0000001d0
-  :test #'=)
-
 ;;;
 ;;; Pairing Heap
 ;;;
@@ -121,12 +114,17 @@
   (heap (make-pairing-heap :key #'car)))
 
 
+(defun blocking-timed-queue-interrupt (queue)
+  (bt:condition-notify (blocking-timed-queue-condivar queue)))
+
+
 (defun blocking-timed-queue-push (queue value wait-sec)
   (let ((heap (blocking-timed-queue-heap queue))
         (lock (blocking-timed-queue-lock queue))
         (queue-item (cons (float (+ (current-seconds) wait-sec) 0d0) value)))
     (bt:with-recursive-lock-held (lock)
-      (%pairing-heap-push heap queue-item)))
+      (%pairing-heap-push heap queue-item))
+    (blocking-timed-queue-interrupt queue))
   value)
 
 
