@@ -31,6 +31,7 @@
                              (:file "spin-lock")))
                (:file "atomic")
                (:file "spin-lock")
+               (:file "blocking-timed-queue")
                (:file "scheduler")))
 
 

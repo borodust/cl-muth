@@ -35,6 +35,7 @@
            with-spin-lock-held
 
            make-scheduler
+           poll-scheduler
            start-scheduler
            stop-scheduler
            schedule

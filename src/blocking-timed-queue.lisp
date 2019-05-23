@@ -113,111 +113,43 @@
     (phn-value root)))
 
 ;;;
-;;; Scheduler priority queue
 ;;;
-
-(defun make-scheduler-queue ()
-  (make-pairing-heap :key #'car))
-
-
-(defun scheduler-queue-push (queue time task interval)
-  (%pairing-heap-push queue (cons (float time 0d0)
-                                  (cons task (and interval (float interval 0d0))))))
-
-
-(defun scheduler-queue-peek-time (queue)
-  (car (%pairing-heap-peek queue)))
-
-
-(defun scheduler-queue-pop (queue)
-  (when-let ((value (cdr (%pairing-heap-pop queue))))
-    (destructuring-bind (task . interval) value
-      (values task interval))))
-
-
 ;;;
-;;; Scheduler
-;;;
-
-(defclass scheduler ()
-  ((enabled-p :initform nil)
-   (condivar :initform (bt:make-condition-variable :name "scheduler-condivar"))
-   (lock :initform (bt:make-recursive-lock "scheduler-lock"))
-   (queue :initform (make-scheduler-queue))))
+(defstruct blocking-timed-queue
+  (condivar (bt:make-condition-variable :name "blocking-timed-queue"))
+  (lock (bt:make-recursive-lock "blocking-timed-queue"))
+  (heap (make-pairing-heap :key #'car)))
 
 
-(defun %schedule (scheduler task wait-sec interval-sec)
-  (with-slots (queue) scheduler
-    (scheduler-queue-push queue (+ (current-seconds) wait-sec) task interval-sec)))
-
-
-(defun schedule (scheduler task wait-sec &optional interval-sec)
-  (with-slots (queue condivar lock) scheduler
+(defun blocking-timed-queue-push (queue value wait-sec)
+  (let ((heap (blocking-timed-queue-heap queue))
+        (lock (blocking-timed-queue-lock queue))
+        (queue-item (cons (float (+ (current-seconds) wait-sec) 0d0) value)))
     (bt:with-recursive-lock-held (lock)
-      (%schedule scheduler task wait-sec interval-sec))
-    (bt:condition-notify condivar)))
+      (%pairing-heap-push heap queue-item)))
+  value)
 
 
-(defun unschedule ()
-  (setf *unscheduled-p* t))
+(defun %blocking-timed-queue-peek-time (queue)
+  (car (%pairing-heap-peek (blocking-timed-queue-heap queue))))
 
 
-(defun %reschedule-task (scheduler task interval expected-time current-time)
-  (let* ((adjusted-interval (- interval
-                               (- current-time expected-time
-                                  +double-float-drift-time-correction+)))
-         (rescheduled-wait (if (< adjusted-interval 0)
-                               (mod adjusted-interval interval)
-                               adjusted-interval)))
-    (%schedule scheduler task rescheduled-wait interval)))
-
-
-(defun process-next-scheduler-event (scheduler)
-  (with-slots (queue condivar lock) scheduler
+(defun %blocking-timed-queue-pop (queue)
+  (let ((lock (blocking-timed-queue-lock queue))
+        (condivar (blocking-timed-queue-condivar queue))
+        (heap (blocking-timed-queue-heap queue)))
     (bt:with-recursive-lock-held (lock)
-      (let ((timeout (when-let ((next-time (scheduler-queue-peek-time queue)))
+      (let ((timeout (when-let ((next-time (%blocking-timed-queue-peek-time queue)))
                        (- next-time (current-seconds)))))
         (when (or (null timeout) (> timeout 0))
           (bt:condition-wait condivar lock :timeout timeout)))
       (let* ((current-time (current-seconds))
-             (expected-time (scheduler-queue-peek-time queue)))
+             (expected-time (%blocking-timed-queue-peek-time queue)))
         (when (and expected-time (<= expected-time current-time))
-          (multiple-value-bind (task interval) (scheduler-queue-pop queue)
-            (let ((*unscheduled-p* nil))
-              (funcall task)
-              (when (and interval (not *unscheduled-p*))
-                (%reschedule-task scheduler task interval expected-time current-time))))
-          t)))))
+          (%pairing-heap-pop heap))))))
 
 
-(defun make-scheduler ()
-  (make-instance 'scheduler))
-
-
-(defun poll-scheduler (scheduler)
-  (loop until (process-next-scheduler-event scheduler)))
-
-
-(defun start-scheduler (scheduler &key (background t))
-  (with-slots (lock enabled-p condivar queue) scheduler
-    (bt:with-recursive-lock-held (lock)
-      (when enabled-p
-        (error "Scheduler already started"))
-      (setf enabled-p t)
-      (flet ((run ()
-               (loop while enabled-p
-                     do (process-next-scheduler-event scheduler))))
-        (if background
-            (bt:make-thread #'run)
-            (run))))
-    scheduler))
-
-
-(defun stop-scheduler (scheduler)
-  (with-slots (lock enabled-p condivar) scheduler
-    (bt:with-recursive-lock-held (lock)
-      (unless enabled-p
-        (error "Scheduler already stopped"))
-      (setf enabled-p nil)
-      (bt:condition-notify condivar))
-    scheduler))
+(defun blocking-timed-queue-pop (queue)
+  (loop for item = (%blocking-timed-queue-pop queue)
+        until item
+        finally (return (cdr item))))
