@@ -5,7 +5,7 @@
   :mailto "dev@borodust.org"
   :license "MIT"
   :defsystem-depends-on (trivial-features)
-  :depends-on (alexandria bordeaux-threads)
+  :depends-on (alexandria bordeaux-threads bodge-queue bodge-heap)
   :pathname "src/"
   :serial t
   :components ((:file "packages")

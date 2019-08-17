@@ -1,17 +1,8 @@
 (cl:in-package :cl-muth.tests)
 (5am:in-suite :cl-muth.tests)
 
-(5am:test fifo
-  (let ((fifo (muth::make-fifo)))
-    (loop for i below 10
-          do (muth::fifo-push fifo i))
-    (multiple-value-bind (result control)
-        (loop for i below 11
-              collect (muth::fifo-pop fifo) into result
-              collect (unless (= i 10) i) into control
-              finally (return (values result control)))
-      (5am:is (equal result control)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun fill-priority-list (priority-list)
   (loop for (value priority) in '((0 :low)
@@ -23,19 +14,19 @@
         do (muth::priority-list-push priority-list value priority))
   priority-list)
 
-
 (5am:test priority-list
   (let ((priority-list (fill-priority-list (muth::make-priority-list))))
-    (5am:is (not (muth::priority-list-empty-p priority-list)))
-    (5am:is (= (muth::priority-list-length priority-list) 6))
-    (5am:is (= (muth::priority-list-peek-least-priority priority-list)
-               (muth::priority->index :lowest)))
-    (5am:is (equal (loop for item = (muth::priority-list-pop priority-list)
+    (5am:is (equal nil (muth::priority-list-empty-p priority-list)))
+    (5am:is (= 6 (muth::priority-list-length priority-list)))
+    (5am:is (= (muth::priority->index :lowest)
+               (muth::priority-list-peek-least-priority priority-list)))
+    (5am:is (equal '(5 1 3 0 2 4)
+                   (loop for item = (muth::priority-list-pop priority-list)
                          while item
-                         collect item)
-                   '(5 1 3 0 2 4)))
-    (5am:is (muth::priority-list-empty-p priority-list))))
+                         collect item)))
+    (5am:is (equal t (muth::priority-list-empty-p priority-list)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (5am:test unbounded-blocking-queue
   (let ((queue (muth:make-blocking-queue))
@@ -58,6 +49,7 @@
         (bt:make-thread #'%consume-queue)))
     (5am:is (equal result '(5 1 3 0 2 4)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (5am:test bounded-blocking-queue
   (let ((queue (muth:make-blocking-queue 1))
@@ -84,6 +76,7 @@
     (5am:is (eq was-blocked-p t))
     (5am:is (equal result '(0 1 2 3 4 5)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (5am:test blocking-queue-replacing
   (let ((queue (muth:make-blocking-queue 4))
@@ -105,3 +98,5 @@
         (bt:make-thread #'%fill-queue)
         (bt:make-thread #'%consume-queue)))
     (5am:is (equal result '(4 1 3 5)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
