@@ -26,7 +26,7 @@
       guarded-ref))
 
 
-(declaim (ftype (function (* guarded-reference) *) (setf guarded-value-of)))
+(declaim (ftype (function (t guarded-reference) *) (setf guarded-value-of)))
 (defun (setf guarded-value-of) (value guarded-ref)
   (with-guarded-reference (guarded-ref)
       (setf guarded-ref value)))

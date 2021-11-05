@@ -141,7 +141,7 @@
     (priority-list-pop-least-important queue)))
 
 
-(declaim (ftype (function (blocking-queue * &optional blocking-queue-item-priority) *) put-into))
+(declaim (ftype (function (blocking-queue t &optional blocking-queue-item-priority) *) put-into))
 (defun put-into (blocking-queue item &optional (priority :medium))
   (with-slots (lock max-size) blocking-queue
     (with-recursive-lock-held (lock)
