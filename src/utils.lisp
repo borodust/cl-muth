@@ -4,8 +4,8 @@
 
 
 (deftype atomic-fixnum ()
-  `(unsigned-byte #+(:or :x86-64 :x86_64 :arm64 :aarch64) 64
-                  #-(:or :x86-64 :x86_64 :arm64 :aarch64) 32))
+  `(unsigned-byte #+(:or :x86-64 :x86_64 :arm64 :aarch64 :ppc64) 64
+                  #-(:or :x86-64 :x86_64 :arm64 :aarch64 :ppc64) 32))
 
 
 (defun current-seconds ()
